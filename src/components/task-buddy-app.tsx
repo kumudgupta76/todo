@@ -16,7 +16,7 @@ import { Progress } from "@/components/ui/progress";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import {
-  Plus, Menu, Braces, Play, ArrowUpDown, Sparkles, ListTodo,
+  Plus, Menu, Braces, Play, List, ArrowUpDown, Sparkles, ListTodo,
   Cloud, CloudOff, Loader2, ArrowUp, ArrowDown
 } from "lucide-react";
 
@@ -40,6 +40,7 @@ export function TaskBuddyApp() {
   const [sortDir, setSortDir] = useState<SortDirection>("desc");
   const [jsonOpen, setJsonOpen] = useState(false);
   const [presentOpen, setPresentOpen] = useState(false);
+  const [presentMode, setPresentMode] = useState<"list" | "slideshow">("slideshow");
   const dragItem = React.useRef<number | null>(null);
   const dragOver = React.useRef<number | null>(null);
 
@@ -307,9 +308,14 @@ export function TaskBuddyApp() {
                     <Braces className="h-4 w-4" />
                   </Button>
 
-                  {/* Present */}
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setPresentOpen(true)} disabled={totalCount === 0}>
-                    <Play className="h-4 w-4" />
+                  {/* Present as Cards */}
+                  <Button variant="ghost" size="sm" className="h-8 text-xs gap-1" onClick={() => { setPresentMode("slideshow"); setPresentOpen(true); }} disabled={totalCount === 0}>
+                    <Play className="h-3.5 w-3.5" /> Cards
+                  </Button>
+
+                  {/* Present as List */}
+                  <Button variant="ghost" size="sm" className="h-8 text-xs gap-1" onClick={() => { setPresentMode("list"); setPresentOpen(true); }} disabled={totalCount === 0}>
+                    <List className="h-3.5 w-3.5" /> List
                   </Button>
                 </div>
               </div>
@@ -391,6 +397,7 @@ export function TaskBuddyApp() {
           agendaName={activeGroup.name}
           onClose={() => setPresentOpen(false)}
           onToggleComplete={handleToggleComplete}
+          initialMode={presentMode}
         />
       )}
     </div>

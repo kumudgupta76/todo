@@ -31,7 +31,7 @@ export function TaskCard({ task, onUpdate, onDelete, onDragStart, onDragEnter, o
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(task.text);
   const [details, setDetails] = useState(task.details);
-  const [showPreview, setShowPreview] = useState(false);
+  const [showPreview, setShowPreview] = useState(true);
   const [showRelativeDate, setShowRelativeDate] = useState(true);
   const [justCompleted, setJustCompleted] = useState(false);
   const [showParticles, setShowParticles] = useState(false);

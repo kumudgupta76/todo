@@ -23,10 +23,11 @@ interface PresentationModeProps {
   agendaName: string;
   onClose: () => void;
   onToggleComplete: (taskId: string) => void;
+  initialMode?: "list" | "slideshow";
 }
 
-export function PresentationMode({ tasks, agendaName, onClose, onToggleComplete }: PresentationModeProps) {
-  const [mode, setMode] = useState<"list" | "slideshow">("slideshow");
+export function PresentationMode({ tasks, agendaName, onClose, onToggleComplete, initialMode = "slideshow" }: PresentationModeProps) {
+  const [mode, setMode] = useState<"list" | "slideshow">(initialMode);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [animStyle, setAnimStyle] = useState<AnimationStyle>("stack");
   const [animDir, setAnimDir] = useState<"left" | "right">("right");
@@ -51,16 +52,27 @@ export function PresentationMode({ tasks, agendaName, onClose, onToggleComplete 
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
-    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (!ctx) return;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
   }, []);
 
-  // Resize canvas
+  // Resize canvas (handle high-DPI / retina displays)
   useEffect(() => {
     const resize = () => {
       const canvas = canvasRef.current;
       if (!canvas) return;
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
+      canvas.style.width = `${window.innerWidth}px`;
+      canvas.style.height = `${window.innerHeight}px`;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
     };
     resize();
     window.addEventListener("resize", resize);
@@ -180,7 +192,7 @@ export function PresentationMode({ tasks, agendaName, onClose, onToggleComplete 
       />
 
       {/* Top Controls */}
-      <div className="absolute top-4 right-4 z-[120] flex items-center gap-2">
+      <div className="absolute top-4 right-4 z-[120] flex items-center gap-1.5 md:gap-2 flex-wrap justify-end">
         <Button variant="outline" size="sm" onClick={() => setMode(mode === "list" ? "slideshow" : "list")}>
           {mode === "list" ? <LayoutGrid className="h-4 w-4 mr-1" /> : <List className="h-4 w-4 mr-1" />}
           {mode === "list" ? "Cards" : "List"}
@@ -209,7 +221,7 @@ export function PresentationMode({ tasks, agendaName, onClose, onToggleComplete 
       </div>
 
       {/* Drawing Controls */}
-      <div className="absolute top-4 left-4 z-[120] flex items-center gap-2">
+      <div className="absolute top-4 left-4 z-[120] flex items-center gap-2 flex-wrap">
         <Button
           variant={drawing ? "default" : "outline"}
           size="icon"
@@ -220,7 +232,7 @@ export function PresentationMode({ tasks, agendaName, onClose, onToggleComplete 
         </Button>
 
         {drawing && (
-          <div className="flex items-center gap-2 bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-[var(--radius)] p-2">
+          <div className="flex items-center gap-1.5 md:gap-2 bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-[var(--radius)] p-1.5 md:p-2 flex-wrap">
             {DRAW_COLORS.map((c) => (
               <button
                 key={c}
@@ -249,7 +261,7 @@ export function PresentationMode({ tasks, agendaName, onClose, onToggleComplete 
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex items-center justify-center p-8 pt-16">
+      <div className="flex-1 flex items-center justify-center px-4 py-4 pt-16 md:px-8 md:py-8 md:pt-16 overflow-auto">
         {mode === "list" ? (
           /* List Mode */
           <div className={cn("w-full max-w-3xl", listAnimationClass)} key={`list-${animStyle}`}>
@@ -306,7 +318,7 @@ export function PresentationMode({ tasks, agendaName, onClose, onToggleComplete 
           </div>
         ) : (
           /* Slideshow Mode */
-          <div className="relative w-full max-w-3xl" style={{ perspective: "1000px" }}>
+          <div className="relative w-full max-w-3xl mx-auto" style={{ perspective: "1000px" }}>
             {/* Background cards */}
             {[2, 1].map((offset) => {
               const bgIdx = currentSlide + offset;
@@ -333,11 +345,11 @@ export function PresentationMode({ tasks, agendaName, onClose, onToggleComplete 
               <div
                 key={`slide-${animKey}`}
                 className={cn(
-                  "bg-[hsl(var(--card))] rounded-[var(--radius)] border border-[hsl(var(--border))] shadow-xl min-h-[400px] flex flex-col",
+                  "bg-[hsl(var(--card))] rounded-[var(--radius)] border border-[hsl(var(--border))] shadow-xl min-h-[300px] md:min-h-[400px] flex flex-col",
                   animationClass
                 )}
               >
-                <div className="p-8 flex-1">
+                <div className="p-4 md:p-8 flex-1">
                   <div className="flex items-center gap-3 mb-6">
                     <button
                       onClick={() => onToggleComplete(tasks[currentSlide].id)}
@@ -388,11 +400,11 @@ export function PresentationMode({ tasks, agendaName, onClose, onToggleComplete 
               </div>
             )}
 
-            {/* Navigation Arrows */}
+            {/* Navigation Arrows - desktop: outside card, mobile: overlaid inside */}
             <Button
               variant="outline"
               size="icon"
-              className="absolute left-[-60px] top-1/2 -translate-y-1/2 h-10 w-10 rounded-full hidden md:flex"
+              className="absolute md:left-[-60px] left-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full z-10"
               onClick={goPrev}
               disabled={currentSlide === 0}
             >
@@ -401,7 +413,7 @@ export function PresentationMode({ tasks, agendaName, onClose, onToggleComplete 
             <Button
               variant="outline"
               size="icon"
-              className="absolute right-[-60px] top-1/2 -translate-y-1/2 h-10 w-10 rounded-full hidden md:flex"
+              className="absolute md:right-[-60px] right-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full z-10"
               onClick={goNext}
               disabled={currentSlide === tasks.length - 1}
             >
